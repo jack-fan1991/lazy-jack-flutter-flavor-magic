@@ -1,0 +1,76 @@
+{
+  "name": "flutter-flavor-magic",
+  "displayName": "lazy flutter flavor magic",
+  "description": "Integrate flutter flavor && firebase , with flutterFire, firebase, flavorizr ",
+  "version": "0.0.3",
+  "publisher": "jackFan",
+  "icon": "images/lazy_man.png",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "keywords": [
+    "flutter",
+    "firebase"
+  ],
+  "main": "out/extension.js",
+  "activationEvents": [
+    "*"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "flavor-magic",
+          "title": "Magic bar",
+          "icon": "/images/settings_app.svg"
+        }
+      ]
+    },
+    "views": {
+      "flavor-magic": [
+        {
+          "id": "FlavorMagicDataProvider",
+          "name": "Flavor Magic "
+        },
+        {
+          "id": "FirebaseDataProvider",
+          "name": "Firebase"
+        }
+      ]
+    },
+    "commands": [],
+    "menus": {
+      "editor/context": [],
+      "explorer/context": []
+    },
+    "snippets": []
+  },
+  "scripts": {
+    "build": " tsc -p tsconfig.json "
+  },
+  "exclude": [
+    "node_modules",
+    ".vscode"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jack-fan1991/lazy-jack-flutter-flavor-magic"
+  },
+  "extensionPack": [],
+  "dependencies": {
+    "@types/node": "^18.15.11",
+    "@types/vscode": "^1.77.0",
+    "axios": "^1.3.2",
+    "change-case": "^4.1.2",
+    "cheerio": "^1.0.0-rc.12",
+    "iconv-lite": "^0.6.3",
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.19",
+    "typescript": "^5.0.4",
+    "yaml": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.5",
+    "@types/lodash": "^4.14.194"
+  }
+}
