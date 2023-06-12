@@ -7,11 +7,12 @@ import { runCommand, runTerminal } from "../utils/src/terminal_utils/terminal_ut
 import { findApplicationId, gradleAddFlavor } from "../utils/src/android/app_build_gradle";
 import { Icon_Info, Icon_Project, logError, logInfo, showInfo } from "../utils/src/logger/logger";
 import { toLowerCamelCase } from "../utils/src/regex/regex_utils";
-import { createFile, isFileExist, openEditor } from "../utils/src/vscode_utils/editor_utils";
-import { getRootPath } from "../utils/src/vscode_utils/vscode_env_utils";
+import { createFile, isFileExist, listFilesInDirectory, openEditor } from "../utils/src/vscode_utils/editor_utils";
+import { getRootPath, getWorkspacePath } from "../utils/src/vscode_utils/vscode_env_utils";
 import path = require("path");
 import { reFormat } from "../utils/src/vscode_utils/activate_editor_utils";
 import { spawn } from "child_process";
+import { get } from "lodash";
 
 
 const projectSetupScripts: TreeScriptModel[] = [
@@ -35,9 +36,9 @@ const projectSetupScripts: TreeScriptModel[] = [
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Deploy firebase',
+        label: 'Pull firebase',
         script: 'Setup firebase to project',
-        description: 'Deploy firebase project to flavor',
+        description: 'Pull firebase project and deploy to flavor',
     },
     {
         scriptsType: ScriptsType.customer,
@@ -125,11 +126,11 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
         vscode.window.showInformationMessage('Setting dependencies on flavorizr', 'Add Flavorizr', 'Read More').then(async (value) => {
             if (value == 'Read More') {
                 openBrowser('https://pub.dev/packages/flutter_flavorizr')
-            } else if(value == 'Add Flavorizr') {
-                if(yaml['dependencies']['firebase_core'] == undefined ){
+            } else if (value == 'Add Flavorizr') {
+                if (yaml['dependencies']['firebase_core'] == undefined) {
                     runTerminal('flutter pub add firebase_core')
                 }
-                if(!this.findFlutterFlavorizr(yaml)){
+                if (!this.findFlutterFlavorizr(yaml)) {
                     runTerminal('flutter pub add flutter_flavorizr --dev')
                 }
                 await openYamlEditor()
@@ -229,7 +230,7 @@ flavorizr:
                 }
                 if (script.script == 'Setup flavor') {
                     let yaml = await getPubspecAsMap()
-                    await this.showFlavorizrEditor(this.findFlutterFlavorizr(yaml),yaml)
+                    await this.showFlavorizrEditor(this.findFlutterFlavorizr(yaml), yaml)
                 }
                 if (script.script == 'Create firebase by flavor') {
                     this.createFirebaseByFlavor(context)
@@ -265,7 +266,7 @@ flavorizr:
         let currentProject = await this.fetchFirebaseFlavor()
         // filter exist project from current project
         if (firebaseFlavor.length == 0) {
-            logError("Can't find any flavor, please add flavor first")
+            logError("Can't find any flavor in Yaml, Use flavorizr to add flavor first")
             return
         }
         let createAbleProject = firebaseFlavor.filter((item) => {
@@ -343,8 +344,19 @@ flavorizr:
 
     async syncFireBase(): Promise<string> {
         showInfo("Sync firebase project")
-        return await runCommand('firebase projects:list', undefined, undefined, false, true)
+        return await runCommand('firebase projects:list', undefined, (error) => {
+            logError(error, true)
+            if (error.includes('Your credentials are no longer valid')) {
+                vscode.window.showInformationMessage("Your credentials are no longer valid , reauth then try again", "Reauth").then((value) => {
+                    if (value == "Reauth") {
+                        runTerminal('firebase login --reauth')
+                    }
+                })
+            }
+
+        }, false, true)
     }
+
 
     async setupFireBaseOption(context: vscode.ExtensionContext) {
 
@@ -389,7 +401,7 @@ flavorizr:
 
                     let cmd = `flutterfire config \
             --project=${firebaseSelected.id} \
-            --out=${folder}/${fileName}_firebase_options.dart \
+            --out=${folder}/${flavor}_firebase_options.dart \
             --ios-bundle-id=${selectFlavorApplicationId} \
             --android-app-id=${selectFlavorApplicationId} `;
 
@@ -400,6 +412,10 @@ flavorizr:
                         runTerminal(cmd);
                         tryMoveIosFile(context, flavor);
                         tryMoveAndroidFile(flavor);
+                        if (yaml!['dependencies']['firebase_core'] == undefined) {
+                            runTerminal('flutter pub add firebase_core')
+                        }
+                        
                     }
                     catch (e) {
                         console.log(e);
@@ -414,10 +430,38 @@ flavorizr:
 
 
     createEnumTemplate(firebaseFlavors: FirebaseFlavor[]) {
-        let fl = firebaseFlavors.map((f) => f.flavorName).join(',')
+        let fl = firebaseFlavors.map((f) => toLowerCamelCase(f.flavorName)).join(',')
         return `enum Flavor { ${fl} }\n\n`
     }
-    
+
+    async getFireBaseOptions(): Promise<String[]> {
+        let files = await listFilesInDirectory(vscode.Uri.parse(getWorkspacePath('/lib/firebase_options')!))
+        return files
+    }
+
+    async createFireBaseOptionsSwitchTemplate(): Promise<String> {
+        let files = await this.getFireBaseOptions()
+        let flavors = files.map((f) => f.split('_').slice(-3)[0])
+        let template=`FirebaseOptions get firebaseOptions {
+switch (flavor) {
+    ${flavors.map((f) => `case Flavor.${toLowerCamelCase(f)}: \nreturn ${f}.DefaultFirebaseOptions.currentPlatform;`).join('\n')}
+    default:
+        throw UnsupportedError('FirebaseOptions for $flavor is not supported');
+  }
+}       
+        `
+        return template
+    }
+
+    async createImportTemplate(packageName: string) {
+        let files =  await this.getFireBaseOptions()
+        let imports = files.map((f) => `import 'package:${packageName}/firebase_options/${f}' as ${f.split('_').slice(-3)[0]};`).join('\n')
+        return imports
+
+    }
+
+
+
 
     async createApplicationTemplate() {
         let isExist = isFileExist('lib/application/application.dart')
@@ -431,11 +475,14 @@ flavorizr:
         let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors(yaml)
         let template =
             `
-    /// Auto generated file. By LazyJack
+    /* 
+      Auto generated file. By LazyJack vscode extension
+    */
 
     import 'package:firebase_core/firebase_core.dart';
     import 'package:flutter/material.dart';
-    
+    ${await this.createImportTemplate(yaml!['name'])}
+
     ${this.createEnumTemplate(firebaseFlavors)}    
     
     late final FirebaseApp firebaseApp;
@@ -453,12 +500,13 @@ flavorizr:
     class Application extends InheritedWidget {
       final Flavor flavor;
       final String appTitle;
-      static late AppLocalizations l10n;
       static final NavigationService _navigationService = NavigationService();
       static GlobalKey<NavigatorState> get navigatorKey => _navigationService.navigatorKey;
       static NavigatorState? get navigator => _navigationService.navigator;
       static BuildContext get context => _navigationService.context;
       static NavigationService get navigationService => _navigationService;
+      static late FirebaseApp firebaseApp;
+
       const Application({
         Key? key,
         required Widget child,
@@ -468,15 +516,16 @@ flavorizr:
               key: key,
               child: child,
             );
-    
+        
       Future<void> init(String name) async {
         WidgetsFlutterBinding.ensureInitialized();
-        // app = await Firebase.initializeApp(
-        //   name: name,
-        //   options: 
-        //   DefaultFirebaseOptions.currentPlatform,
-        // );
+        firebaseApp = await Firebase.initializeApp(
+          name: name,
+          options: firebaseOptions
+        );
       }
+
+      ${await this.createFireBaseOptionsSwitchTemplate()}
     
       static Application of(BuildContext context) {
         return context.dependOnInheritedWidgetOfExactType<Application>()!;
@@ -525,7 +574,6 @@ flavorizr:
             logError("try again")
         }
         else {
-
             reFormat()
 
         }
@@ -558,6 +606,7 @@ async function tryMoveAndroidFile(flavor: string) {
         }
     )
     if (result != undefined) {
+        runCommand(`mkdir -p android/app/src/${flavor}`)
         runCommand(`mv android/app/google-services.json android/app/src/${flavor}/google-services.json`)
     }
 }

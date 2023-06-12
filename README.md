@@ -1,38 +1,51 @@
-## Fast to setup Flavor to new project 
-### UI to setup project and connect to firebase
-* Decencies Cli
-    * [firebase] (https://firebase.google.com/docs/cli)
-        * setup
-       
-            ```
+## Fast to setup Flavor and Firebase for new project 
+### Dependencies CLI
+* [firebase](https://firebase.google.com/docs/cli)
+    * setup
+    
+        ```
 
-            npm install -g firebase-tools
-            ```
+        npm install -g firebase-tools
+        ```
 
-    * [flutter fire](https://firebase.flutter.dev/docs/cli/)
-         * setup
-            ```
-            npm install -g firebase-tools
+* [flutter fire](https://firebase.flutter.dev/docs/cli/)
+    * setup
+        ```
+        npm install -g firebase-tools
 
-            dart pub global activate flutterfire_cli
-            ```
+        dart pub global activate flutterfire_cli
+        ```
 
-* Setup flavor / Run Flavorizr
-    * Decencies
+### How to use
+
+* [Step1] Setup Flavor / Run Flavorizr
+    * Dependency
         * [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr)
     * If create failed use Run Flavorizr to recreate
 
-* Create firebase by flavor
+* [Step2] Create Firebase by Flavor
+    * Goal => Use flavor to create firebase project
     * If you already have firebase project, you can skip this step
-    * goal => set flavor is one-to-one with firebase
 
-* Deploy firebase
-    * goal => deploy firebase by flavor 
-    * auto setup in android and ios by flavor
-    * no need to manually download google-service.json and GoogleService-Info.plist anymore
-    * will create firebase option at lib/firebase_options
+* [Step3] Pull Firebase
+    * Goal => pull firebase project and deploy flavor 
+    * Auto setup in android and ios by flavor
+    * No need to manually download google-service.json and GoogleService-Info.plist anymore
+    * Will create Firebase option at lib/firebase_options
+        * sample Flavor [ prod, dev ]
+            ```
+            lib
+            |
+            |_ firebase_options
+                |
+                |_dev_firebase_options.dart
+                |_prod_firebase_options.dart
+            
+            ```
     
-* Create Application.dart
-    * maintain flavor with  Application template
+* [Step4] Create Application.dart
+    * maintain flavor env setup with Application template
 
-![](../image/project_setup/sidebar.png)
+
+# SideBar
+![](./images/sidebar.png)
