@@ -344,17 +344,7 @@ flavorizr:
 
     async syncFireBase(): Promise<string> {
         showInfo("Sync firebase project")
-        return await runCommand('firebase projects:list', undefined, (error) => {
-            logError(error, true)
-            if (error.includes('Your credentials are no longer valid')) {
-                vscode.window.showInformationMessage("Your credentials are no longer valid , reauth then try again", "Reauth").then((value) => {
-                    if (value == "Reauth") {
-                        runTerminal('firebase login --reauth')
-                    }
-                })
-            }
-
-        }, false, true)
+        return await runCommand('firebase projects:list',undefined)
     }
 
 
