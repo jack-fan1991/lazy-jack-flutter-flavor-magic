@@ -32,7 +32,13 @@ const fireBaseInstallScripts: TreeScriptModel[] = [
         scriptsType: ScriptsType.terminal,
         label: 'Login',
         script: 'firebase login',
+    },
+    {
+        scriptsType: ScriptsType.terminal,
+        label: 'Start emulators',
+        script: 'firebase emulators:start',
     }
+
 
 ]
 

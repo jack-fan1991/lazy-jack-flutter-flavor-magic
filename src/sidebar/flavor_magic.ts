@@ -152,17 +152,18 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
                 })
                 if (finalApplicationId == undefined || appName == undefined || flavor == undefined) return
                 finalApplicationId = convertApplicationId(finalApplicationId)
+                
                 let template = this.createFlavorizrTemplate(finalApplicationId, appName, flavor)
-                let pubspecEditor = await openYamlEditor()
-                let lastLine = pubspecEditor!.document.lineAt(pubspecEditor!.document.lineCount - 1)
-                // insert template to pubspec.yaml latest line
-                pubspecEditor!.edit((editBuilder) => {
-                    editBuilder.insert(lastLine.range.end, template)
-                }
-                )
+                let absPath=  path.join(await getRootPath(), 'flavorizr.yaml')
+                await createFile(absPath, template)
+                // let lastLine = pubspecEditor!.document.lineAt(pubspecEditor!.document.lineCount - 1)
+                // // insert template to pubspec.yaml latest line
+                // pubspecEditor!.edit((editBuilder) => {
+                //     editBuilder.insert(lastLine.range.end, template)
+                // }
+                // )
 
                 // save editor
-                await pubspecEditor!.document.save()
                 await vscode.window.showInformationMessage("Will create numerous file,make sure your git commit status", "Create", "Cancel").then((value) => {
                     if (value == "Create") {
                         runTerminal("flutter pub run flutter_flavorizr")
@@ -181,20 +182,13 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
 
     createFlavorizrTemplate(applicationId: string, appName: string, flavor: string[]) {
         let template = `
-flavorizr:
-  ide: "vscode"
-  app:
-    android:
-      flavorDimensions: "flavor-type"
-    ios:
-
-  flavors:      
-        `
-        for (let f of flavor) {
-            template += this.createFlavorTemplate(applicationId, appName, f)
-        }
-        logInfo(template)
-        return template
+flavors:      
+    `
+    for (let f of flavor) {
+        template += this.createFlavorTemplate(applicationId, appName, f)
+    }
+    logInfo(template)
+    return template
     }
 
     createFlavorTemplate(applicationId: string, appName: string, flavor: string) {
@@ -555,6 +549,7 @@ switch (flavor) {
     
         `
         try {
+            runCommand(`mkdir -p ${getWorkspacePath('lib/application')}`)
             await createFile(absPath, template)
         } catch (e) {
             console.log(e)
