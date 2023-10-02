@@ -112,7 +112,6 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
 
     async showFlavorizrEditor(flavorIsSetup: boolean, yaml: any) {
         if (flavorIsSetup) {
-            await openYamlEditor()
             let flavors = await this.findFlavors(yaml)
             let currentFlavors = flavors.map((flavor) => { return flavor.flavorName }).join(',')
             vscode.window.showInformationMessage(`Flutter already setup with ${currentFlavors}`, 'Read More').then(async (value) => {
@@ -133,7 +132,6 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
                 if (!this.findFlutterFlavorizr(yaml)) {
                     runTerminal('flutter pub add flutter_flavorizr --dev')
                 }
-                await openYamlEditor()
                 // wait 1 second to make sure flutter pub add flutter_flavorizr is done
                 await sleep(1000)
                 let applicationId = findApplicationId()[1]
@@ -156,6 +154,7 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
                 let template = this.createFlavorizrTemplate(finalApplicationId, appName, flavor)
                 let absPath=  path.join(await getRootPath(), 'flavorizr.yaml')
                 await createFile(absPath, template)
+                let edit = await openEditor(absPath)
                 // let lastLine = pubspecEditor!.document.lineAt(pubspecEditor!.document.lineCount - 1)
                 // // insert template to pubspec.yaml latest line
                 // pubspecEditor!.edit((editBuilder) => {
