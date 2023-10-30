@@ -2,7 +2,7 @@
   "name": "flutter-flavor-magic",
   "displayName": "lazy flutter flavor magic",
   "description": "Integrate flutter flavor && firebase , with flutterFire, firebase, flavorizr ",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "publisher": "jackFan",
   "icon": "images/lazy_man.png",
   "engines": {

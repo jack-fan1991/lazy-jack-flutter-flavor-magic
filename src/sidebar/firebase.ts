@@ -58,13 +58,13 @@ export class FirebaseDataProvider extends BaseTreeDataProvider {
 
     private async firebaseTree(): Promise<SideBarEntryItem[]> {
         let childrenList: SideBarEntryItem[] = []
-        try {
-            await runCommand("firebase --version", undefined, )
-        }
-        catch {
-            return FirebaseDataProvider.parseScripts(fireBaseUninstallScripts);
+        // try {
+        //     await runCommand("firebase --version")
+        // }
+        // catch {
+        //     return FirebaseDataProvider.parseScripts(fireBaseUninstallScripts);
 
-        }
+        // }
         return FirebaseDataProvider.parseScripts(fireBaseInstallScripts);
 
     }
