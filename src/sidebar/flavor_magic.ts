@@ -7,7 +7,7 @@ import { runCommand, runTerminal } from "../utils/src/terminal_utils/terminal_ut
 import { findApplicationId, gradleAddFlavor } from "../utils/src/android/app_build_gradle";
 import { Icon_Info, Icon_Project, logError, logInfo, showInfo } from "../utils/src/logger/logger";
 import { toLowerCamelCase } from "../utils/src/regex/regex_utils";
-import { createFile, isFileExist, listFilesInDirectory, openEditor } from "../utils/src/vscode_utils/editor_utils";
+import { createFile, getYAMLFileContent, isFileExist, listFilesInDirectory, openEditor } from "../utils/src/vscode_utils/editor_utils";
 import { getRootPath, getWorkspacePath } from "../utils/src/vscode_utils/vscode_env_utils";
 import path = require("path");
 import { reFormat } from "../utils/src/vscode_utils/activate_editor_utils";
@@ -18,31 +18,31 @@ import { get } from "lodash";
 const projectSetupScripts: TreeScriptModel[] = [
     {
         scriptsType: ScriptsType.customer,
-        label: 'Setup flavor',
+        label: 'Step 1. Setup flavor',
         script: 'Setup flavor',
         description: 'Use flavorizr to setup flavor',
     },
     {
         scriptsType: ScriptsType.terminal,
-        label: 'Run Flavorizr',
+        label: 'Step 2. Run Flavorizr',
         script: 'flutter pub run flutter_flavorizr',
         description: 'flutter pub run flutter_flavorizr',
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Create firebase by flavor',
+        label: 'Step 3. Create firebase by flavor',
         script: 'Create firebase by flavor',
         description: 'Select flavor to create firebase project',
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Pull firebase',
+        label: 'Step 4. Pull firebase option',
         script: 'Setup firebase to project',
-        description: 'Pull firebase project and deploy to flavor',
+        description: 'Pull firebase project option and deploy to flavor',
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Create Application.dart',
+        label: 'Step 5. Create Application.dart',
         script: 'Create Application dart file',
         description: 'Create Application.dart template',
 
@@ -112,7 +112,7 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
 
     async showFlavorizrEditor(flavorIsSetup: boolean, yaml: any) {
         if (flavorIsSetup) {
-            let flavors = await this.findFlavors(yaml)
+            let flavors = await this.findFlavors()
             let currentFlavors = flavors.map((flavor) => { return flavor.flavorName }).join(',')
             vscode.window.showInformationMessage(`Flutter already setup with ${currentFlavors}`, 'Read More').then(async (value) => {
                 if (value == 'Read More') {
@@ -134,7 +134,7 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
                 }
                 // wait 1 second to make sure flutter pub add flutter_flavorizr is done
                 await sleep(1000)
-                let applicationId = findApplicationId()[1]
+                let applicationId = findApplicationId()
                 let projectName = yaml!['name']
                 applicationId = convertApplicationId(applicationId)
                 let finalApplicationId = await vscode.window.showInputBox({ prompt: `${Icon_Info} Set up bundleId / applicationId`, value: applicationId }).then((value) => {
@@ -254,8 +254,8 @@ flavors:
     }
 
     async createFirebaseByFlavor(context: vscode.ExtensionContext) {
-        let yaml = await getPubspecAsMap()
-        let firebaseFlavor: FirebaseFlavor[] = await this.findFlavors(yaml)
+        
+        let firebaseFlavor: FirebaseFlavor[] = await this.findFlavors()
         let currentProject = await this.fetchFirebaseFlavor()
         // filter exist project from current project
         if (firebaseFlavor.length == 0) {
@@ -276,7 +276,12 @@ flavors:
             createAbleFlavorItem.push({ label: f.flavorName, description: f.displayName, firebaseFlavor: f })
         }
         showPicker("Select flavor to create firebase env ", createAbleFlavorItem, async (item) => {
-            let name = yaml!['name']
+    
+            let flutter_yaml =await getPubspecAsMap()
+            if (!flutter_yaml || typeof flutter_yaml !== 'object') {
+                throw new Error('Invalid yaml object');
+            }
+            let name: string = flutter_yaml['name'];
             let defaultName = convertApplicationIdToProjectId(`${name}-${item.firebaseFlavor.flavorName}`)
             vscode.window.showInformationMessage(`Will create firebase project ${defaultName} `, "Create", "Modify").then((value) => {
                 if (value == "Create") {
@@ -317,11 +322,11 @@ flavors:
 
     }
 
-    async findFlavors(yaml: any): Promise<FirebaseFlavor[]> {
+    async findFlavors(): Promise<FirebaseFlavor[]> {
+        let p =getWorkspacePath("flavorizr.yaml")
+        let yaml = await getYAMLFileContent(p )
         if (yaml == undefined) return []
-        let findFlutterFlavorizr = this.findFlutterFlavorizr(yaml)
-        if (!findFlutterFlavorizr) return []
-        let flavors = yaml['flavorizr']['flavors']
+        let flavors = yaml['flavors']
         let firebaseFlavors: FirebaseFlavor[] = []
         // map flavors to firebaseFlavors
         for (let flavor in flavors) {
@@ -360,7 +365,7 @@ flavors:
         projectsItems = projects.map((p) => { return { label: `${Icon_Project} ${p.projectDisplayName}`, id: p.projectID } })
         let yaml = await getPubspecAsMap()
         let packageName = yaml!['name']
-        let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors(yaml)
+        let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors()
 
         let createAbleFlavorItem: { label: string; description: string; firebaseFlavor: FirebaseFlavor }[] = []
 
@@ -387,7 +392,7 @@ flavors:
             --out=${folder}/${flavor}_firebase_options.dart \
             --ios-bundle-id=${selectFlavorApplicationId} \
             --android-app-id=${selectFlavorApplicationId} `;
-
+                    showInfo(`${Icon_Info} Platform in terminal `)
                     try {
                         if (isFileExist('ios/Runner/GoogleService-Info.plist')) {
                             runCommand(`rm ios/Runner/GoogleService-Info.plist`);
@@ -455,7 +460,7 @@ switch (flavor) {
         runTerminal('mkdir -p lib/application')
         let absPath = path.join(await getRootPath(), 'lib/application/application.dart')
         let yaml = await getPubspecAsMap()
-        let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors(yaml)
+        let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors()
         let template =
             `
     /* 
