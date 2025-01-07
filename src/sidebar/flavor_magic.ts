@@ -132,6 +132,9 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
                 if (!this.findFlutterFlavorizr(yaml)) {
                     runTerminal('flutter pub add flutter_flavorizr --dev')
                 }
+                if (yaml['dependencies']['package_info_plus'] == undefined) {
+                    runTerminal('flutter pub add package_info_plus')
+                }
                 // wait 1 second to make sure flutter pub add flutter_flavorizr is done
                 await sleep(1000)
                 let applicationId = findApplicationId()
@@ -430,7 +433,7 @@ flavors:
     async createFireBaseOptionsSwitchTemplate(): Promise<String> {
         let files = await this.getFireBaseOptions()
         let flavors = files.map((f) => f.split('_').slice(-3)[0])
-        let template=`FirebaseOptions get firebaseOptions {
+        let template=`static FirebaseOptions get firebaseOptions {
 switch (flavor) {
     ${flavors.map((f) => `case Flavor.${toLowerCamelCase(f)}: \nreturn ${f}.DefaultFirebaseOptions.currentPlatform;`).join('\n')}
     default:
@@ -449,6 +452,7 @@ switch (flavor) {
     }
 
 
+    
 
 
     async createApplicationTemplate() {
@@ -461,6 +465,7 @@ switch (flavor) {
         let absPath = path.join(await getRootPath(), 'lib/application/application.dart')
         let yaml = await getPubspecAsMap()
         let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors()
+        let flavors:string[] = firebaseFlavors.map((f) => f.flavorName)
         let template =
             `
     /* 
@@ -469,6 +474,7 @@ switch (flavor) {
 
     import 'package:firebase_core/firebase_core.dart';
     import 'package:flutter/material.dart';
+    import 'package:package_info_plus/package_info_plus.dart';
     ${await this.createImportTemplate(yaml!['name'])}
 
     ${this.createEnumTemplate(firebaseFlavors)}    
@@ -476,79 +482,32 @@ switch (flavor) {
     late final FirebaseApp firebaseApp;
     
     
-    /// void main() {
-    ///    final app = Application(
-    ///    appTitle: 'warrior_shield',
-    ///    flavor: Flavor.dev,
-    ///    child: App(),
-    ///  )..init('warrior_shield', Flavor.dev);
-    ///
+    /// void main() async{ 
+    ///  await Application.init(name: 'application_name', flavor: flavor);
     ///  runApp(app);
     ///
-    class Application extends InheritedWidget {
-      final Flavor flavor;
-      final String appTitle;
-      static final NavigationService _navigationService = NavigationService();
-      static GlobalKey<NavigatorState> get navigatorKey => _navigationService.navigatorKey;
-      static NavigatorState? get navigator => _navigationService.navigator;
-      static BuildContext get context => _navigationService.context;
-      static NavigationService get navigationService => _navigationService;
-      static late FirebaseApp firebaseApp;
+    class Application {
+        static Flavor flavor = Flavor.${firebaseFlavors[0].flavorName};
+        static late FirebaseApp firebaseApp;
+        static bool isDev = true;
 
-      const Application({
-        Key? key,
-        required Widget child,
-        required this.flavor,
-        required this.appTitle,
-      }) : super(
-              key: key,
-              child: child,
-            );
-        
-      Future<void> init(String name) async {
-        WidgetsFlutterBinding.ensureInitialized();
-        firebaseApp = await Firebase.initializeApp(
-          name: name,
-          options: firebaseOptions
-        );
-      }
+        static Future<void> init(
+            {required String name, required Flavor flavor}) async {
+            flavor = flavor;
+            WidgetsFlutterBinding.ensureInitialized();
+            PackageInfo packageInfo = await PackageInfo.fromPlatform();
+            ${generateFlavorSwitch(flavors)}
+
+            firebaseApp =
+                await Firebase.initializeApp(name: name, options: firebaseOptions);
+        }
+
 
       ${await this.createFireBaseOptionsSwitchTemplate()}
     
-      static Application of(BuildContext context) {
-        return context.dependOnInheritedWidgetOfExactType<Application>()!;
-      }
-    
-      @override
-      bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
     }
     
-    class NavigationService {
-      final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-      BuildContext get context => navigatorKey.currentContext!;
-      NavigatorState? get navigator => navigatorKey.currentState;
-    
-      Future<dynamic> pushNamed(String routeName, {Object? arguments}) {
-        return navigatorKey.currentState!
-            .pushNamed(routeName, arguments: arguments);
-      }
-    
-      Future<dynamic> pushReplacementNamed(String routeName, {Object? arguments}) {
-        return navigatorKey.currentState!
-            .pushReplacementNamed(routeName, arguments: arguments);
-      }
-    
-      Future<dynamic> pushNamedAndRemoveUntil(
-          String routeName, RoutePredicate predicate,
-          {Object? arguments}) {
-        return navigatorKey.currentState!
-            .pushNamedAndRemoveUntil(routeName, predicate, arguments: arguments);
-      }
-    
-      void pop({Object? result}) {
-        return navigatorKey.currentState!.pop(result);
-      }
-    }
+
     
     
         `
@@ -630,4 +589,27 @@ function runRubyScript(context: vscode.ExtensionContext) {
     childProcess.stderr.on('data', (data: string) => {
         logError(data.toString()); // 輸出 Ruby 腳本的錯誤輸出
     });
+}
+
+
+function generateFlavorSwitch(firebaseFlavors: string[]): string {
+    let cases = firebaseFlavors.map(flavor => {
+        return `
+        case String name when name.endsWith('.${flavor}'):
+          Application.isDev = ${flavor === 'dev'};
+          flavor = Flavor.${flavor};
+          break;`;
+    }).join('\n        '); // 生成對應的 case 條件
+
+    let defaultCase = `
+        default:
+          // Handle other cases or set a default flavor
+          Application.isDev = false;
+          break;`;
+
+    return `
+    switch (packageInfo.packageName) {
+        ${cases}
+        ${defaultCase}
+    }`;
 }
