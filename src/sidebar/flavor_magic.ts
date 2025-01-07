@@ -13,7 +13,7 @@ import path = require("path");
 import { reFormat } from "../utils/src/vscode_utils/activate_editor_utils";
 import { spawn } from "child_process";
 import { get } from "lodash";
-
+import * as changeCase from "change-case";
 
 const projectSetupScripts: TreeScriptModel[] = [
     {
@@ -295,7 +295,7 @@ flavors:
                     vscode.window.showInputBox({ prompt: "Modify firebase project name", value: `${defaultName}` }).then((value) => {
                         if (value) {
                             value = convertApplicationIdToProjectId(value)
-                            let cmd = `firebase projects:create --display-name= ${value} `
+                            let cmd = `firebase projects:create --display-name= ${value}`
                             runTerminal(cmd)
                         }
                     })
@@ -468,19 +468,15 @@ switch (flavor) {
         let flavors:string[] = firebaseFlavors.map((f) => f.flavorName)
         let template =
             `
-    /* 
-      Auto generated file. By LazyJack vscode extension
-    */
+    
+    //  Auto generated file. By LazyJack vscode extension
 
     import 'package:firebase_core/firebase_core.dart';
     import 'package:flutter/material.dart';
     import 'package:package_info_plus/package_info_plus.dart';
     ${await this.createImportTemplate(yaml!['name'])}
 
-    ${this.createEnumTemplate(firebaseFlavors)}    
-    
-    late final FirebaseApp firebaseApp;
-    
+    ${this.createEnumTemplate(firebaseFlavors)}       
     
     /// void main() async{ 
     ///  await Application.init(name: 'application_name', flavor: flavor);
@@ -492,8 +488,7 @@ switch (flavor) {
         static bool isDev = true;
 
         static Future<void> init(
-            {required String name, required Flavor flavor}) async {
-            flavor = flavor;
+            {required String name}) async {
             WidgetsFlutterBinding.ensureInitialized();
             PackageInfo packageInfo = await PackageInfo.fromPlatform();
             ${generateFlavorSwitch(flavors)}
