@@ -1,4 +1,5 @@
 ## Fast to setup Flavor and Firebase for new project 
+/opt/homebrew/lib/node_modules/firebase-tools/lib/templates.js
 ### Dependencies CLI
 * [firebase](https://firebase.google.com/docs/cli)
     * setup

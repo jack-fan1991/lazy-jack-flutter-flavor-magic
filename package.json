@@ -2,7 +2,7 @@
   "name": "flutter-flavor-magic",
   "displayName": "lazy flutter flavor magic",
   "description": "Integrate flutter flavor && firebase , with flutterFire, firebase, flavorizr ",
-  "version": "0.0.11",
+  "version": "0.0.13",
   "publisher": "jackFan",
   "icon": "images/lazy_man.png",
   "engines": {
@@ -46,7 +46,8 @@
     "snippets": []
   },
   "scripts": {
-    "build": " tsc -p tsconfig.json "
+    "build": " tsc -p tsconfig.json ",
+    "firebase": "VSCODE_CWD='' /opt/homebrew/bin/firebase projects:list"
   },
   "exclude": [
     "node_modules",
