@@ -50,7 +50,7 @@ const projectSetupScripts: TreeScriptModel[] = [
 
 ]
 
-class Project {
+export class Project {
     projectDisplayName: string;
     projectID: string;
     projectNumber: string;
@@ -62,14 +62,17 @@ class Project {
     }
 }
 
-class FirebaseFlavor {
+export class FirebaseFlavor {
     flavorName: string;
     applicationId: string;
     displayName: string;
+    projectID: string;
+
     constructor() {
         this.flavorName = ''
         this.applicationId = ''
         this.displayName = ''
+        this.projectID =''
     }
 
     firebaseProjectId(): string {
@@ -112,7 +115,7 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
 
     async showFlavorizrEditor(flavorIsSetup: boolean, yaml: any) {
         if (flavorIsSetup) {
-            let flavors = await this.findFlavors()
+            let flavors = await findFlavors()
             let currentFlavors = flavors.map((flavor) => { return flavor.flavorName }).join(',')
             vscode.window.showInformationMessage(`Flutter already setup with ${currentFlavors}`, 'Read More').then(async (value) => {
                 if (value == 'Read More') {
@@ -153,9 +156,9 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
                 })
                 if (finalApplicationId == undefined || appName == undefined || flavor == undefined) return
                 finalApplicationId = convertApplicationId(finalApplicationId)
-                
+
                 let template = this.createFlavorizrTemplate(finalApplicationId, appName, flavor)
-                let absPath=  path.join(await getRootPath(), 'flavorizr.yaml')
+                let absPath = path.join(await getRootPath(), 'flavorizr.yaml')
                 await createFile(absPath, template)
                 let edit = await openEditor(absPath)
                 // let lastLine = pubspecEditor!.document.lineAt(pubspecEditor!.document.lineCount - 1)
@@ -186,11 +189,11 @@ export class FlavorMagicDataProvider extends BaseTreeDataProvider {
         let template = `
 flavors:      
     `
-    for (let f of flavor) {
-        template += this.createFlavorTemplate(applicationId, appName, f)
-    }
-    logInfo(template)
-    return template
+        for (let f of flavor) {
+            template += this.createFlavorTemplate(applicationId, appName, f)
+        }
+        logInfo(template)
+        return template
     }
 
     createFlavorTemplate(applicationId: string, appName: string, flavor: string) {
@@ -257,9 +260,9 @@ flavors:
     }
 
     async createFirebaseByFlavor(context: vscode.ExtensionContext) {
-        
-        let firebaseFlavor: FirebaseFlavor[] = await this.findFlavors()
-        let currentProject = await this.fetchFirebaseFlavor()
+
+        let firebaseFlavor: FirebaseFlavor[] = await findFlavors()
+        let currentProject = await fetchFirebaseFlavor()
         // filter exist project from current project
         if (firebaseFlavor.length == 0) {
             logError("Can't find any flavor in Yaml, Use flavorizr to add flavor first")
@@ -279,8 +282,8 @@ flavors:
             createAbleFlavorItem.push({ label: f.flavorName, description: f.displayName, firebaseFlavor: f })
         }
         showPicker("Select flavor to create firebase env ", createAbleFlavorItem, async (item) => {
-    
-            let flutter_yaml =await getPubspecAsMap()
+
+            let flutter_yaml = await getPubspecAsMap()
             if (!flutter_yaml || typeof flutter_yaml !== 'object') {
                 throw new Error('Invalid yaml object');
             }
@@ -307,52 +310,10 @@ flavors:
     }
 
 
-
-    async fetchFirebaseFlavor(): Promise<Project[]> {
-        let text = await this.syncFireBase()
-        let rows = text.match(/\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│/g)!
-        let projects: Project[] = []
-        for (let r of rows) {
-            let items = r.match(/\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│/g)![0].split('│').filter((i) => i != '').map((i) => i.trim())
-            if (items[0].includes('Display Name')) continue
-            let project: Project = new Project()
-            project.projectDisplayName = items[0]
-            project.projectID = items[1]
-            project.projectNumber = items[2]
-            projects.push(project)
-        }
-        return projects
-
-    }
-
-    async findFlavors(): Promise<FirebaseFlavor[]> {
-        let p =getWorkspacePath("flavorizr.yaml")
-        let yaml = await getYAMLFileContent(p )
-        if (yaml == undefined) return []
-        let flavors = yaml['flavors']
-        let firebaseFlavors: FirebaseFlavor[] = []
-        // map flavors to firebaseFlavors
-        for (let flavor in flavors) {
-            let firebaseFlavor = new FirebaseFlavor()
-            firebaseFlavor.flavorName = flavor
-            firebaseFlavor.applicationId = flavors[flavor]['android']['applicationId']
-            firebaseFlavor.displayName = flavors[flavor]['app']['name']
-            firebaseFlavors.push(firebaseFlavor)
-        }
-        return firebaseFlavors
-
-    }
-
-    async syncFireBase(): Promise<string> {
-        showInfo("Sync firebase project")
-        return await runCommand('firebase projects:list',undefined)
-    }
-
-
     async setupFireBaseOption(context: vscode.ExtensionContext) {
 
         // runTerminal('dart pub global activate flutterfire_cli')
-        let text = await this.syncFireBase()
+        let text = await syncFireBase()
         let rows = text.match(/\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│/g)!
         let projects: Project[] = []
         for (let r of rows) {
@@ -368,7 +329,7 @@ flavors:
         projectsItems = projects.map((p) => { return { label: `${Icon_Project} ${p.projectDisplayName}`, id: p.projectID } })
         let yaml = await getPubspecAsMap()
         let packageName = yaml!['name']
-        let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors()
+        let firebaseFlavors: FirebaseFlavor[] = await findFlavors()
 
         let createAbleFlavorItem: { label: string; description: string; firebaseFlavor: FirebaseFlavor }[] = []
 
@@ -406,7 +367,7 @@ flavors:
                         if (yaml!['dependencies']['firebase_core'] == undefined) {
                             runTerminal('flutter pub add firebase_core')
                         }
-                        
+
                     }
                     catch (e) {
                         console.log(e);
@@ -433,7 +394,7 @@ flavors:
     async createFireBaseOptionsSwitchTemplate(): Promise<String> {
         let files = await this.getFireBaseOptions()
         let flavors = files.map((f) => f.split('_').slice(-3)[0])
-        let template=`static FirebaseOptions get firebaseOptions {
+        let template = `static FirebaseOptions get firebaseOptions {
 switch (flavor) {
     ${flavors.map((f) => `case Flavor.${toLowerCamelCase(f)}: \nreturn ${f}.DefaultFirebaseOptions.currentPlatform;`).join('\n')}
     default:
@@ -445,14 +406,14 @@ switch (flavor) {
     }
 
     async createImportTemplate(packageName: string) {
-        let files =  await this.getFireBaseOptions()
+        let files = await this.getFireBaseOptions()
         let imports = files.map((f) => `import 'package:${packageName}/firebase_options/${f}' as ${f.split('_').slice(-3)[0]};`).join('\n')
         return imports
 
     }
 
 
-    
+
 
 
     async createApplicationTemplate() {
@@ -464,8 +425,8 @@ switch (flavor) {
         runTerminal('mkdir -p lib/application')
         let absPath = path.join(await getRootPath(), 'lib/application/application.dart')
         let yaml = await getPubspecAsMap()
-        let firebaseFlavors: FirebaseFlavor[] = await this.findFlavors()
-        let flavors:string[] = firebaseFlavors.map((f) => f.flavorName)
+        let firebaseFlavors: FirebaseFlavor[] = await findFlavors()
+        let flavors: string[] = firebaseFlavors.map((f) => f.flavorName)
         let template =
             `
     
@@ -564,7 +525,7 @@ function convertApplicationId(string: string) {
 }
 
 
-function convertApplicationIdToProjectId(string: string) {
+export function convertApplicationIdToProjectId(string: string) {
     return string.replace(/[._]/g, "-");
 }
 
@@ -608,3 +569,48 @@ function generateFlavorSwitch(firebaseFlavors: string[]): string {
         ${defaultCase}
     }`;
 }
+
+
+export async function findFlavors(): Promise<FirebaseFlavor[]> {
+    let p = getWorkspacePath("flavorizr.yaml")
+    let yaml = await getYAMLFileContent(p)
+    if (yaml == undefined) return []
+    let flavors = yaml['flavors']
+    let firebaseFlavors: FirebaseFlavor[] = []
+    // map flavors to firebaseFlavors
+    for (let flavor in flavors) {
+        let firebaseFlavor = new FirebaseFlavor()
+        firebaseFlavor.flavorName = flavor
+        firebaseFlavor.applicationId = flavors[flavor]['android']['applicationId']
+        firebaseFlavor.displayName = flavors[flavor]['app']['name']
+        firebaseFlavors.push(firebaseFlavor)
+    }
+    return firebaseFlavors
+
+}
+
+
+export async function fetchFirebaseFlavor(): Promise<Project[]> {
+    let text = await syncFireBase()
+    let rows = text.match(/\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│/g)!
+    let projects: Project[] = []
+    for (let r of rows) {
+        let items = r.match(/\│\s*(.*?)\s*\│\s*(.*?)\s*\│\s*(.*?)\s*\│/g)![0].split('│').filter((i) => i != '').map((i) => i.trim())
+        if (items[0].includes('Display Name')) continue
+        let project: Project = new Project()
+        project.projectDisplayName = items[0]
+        project.projectID = items[1]
+        project.projectNumber = items[2]
+        projects.push(project)
+    }
+    return projects
+
+}
+
+
+
+export async function syncFireBase(): Promise<string> {
+    showInfo("Sync firebase project")
+    return await runCommand('firebase projects:list', undefined)
+}
+
