@@ -1,51 +1,74 @@
-## Fast to setup Flavor and Firebase for new project 
-### Dependencies CLI
-* [firebase](https://firebase.google.com/docs/cli)
-    * setup
-    
-        ```
+# Flutter Flavor Magic
 
-        npm install -g firebase-tools
-        ```
+A powerful tool for managing Flutter app flavors and Firebase configurations with ease.
 
-* [flutter fire](https://firebase.flutter.dev/docs/cli/)
-    * setup
-        ```
-        npm install -g firebase-tools
+## Prerequisites
 
-        dart pub global activate flutterfire_cli
-        ```
+Before getting started, ensure you have the following CLI tools installed:
 
-### How to use
+### Firebase CLI
 
-* [Step1] Setup Flavor / Run Flavorizr
-    * Dependency
-        * [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr)
-    * If create failed use Run Flavorizr to recreate
+Install the Firebase CLI to manage your Firebase projects:
 
-* [Step2] Create Firebase by Flavor
-    * Goal => Use flavor to create firebase project
-    * If you already have firebase project, you can skip this step
+```bash
+brew install firebase-cli
+```
 
-* [Step3] Pull Firebase
-    * Goal => pull firebase project and deploy flavor 
-    * Auto setup in android and ios by flavor
-    * No need to manually download google-service.json and GoogleService-Info.plist anymore
-    * Will create Firebase option at lib/firebase_options
-        * sample Flavor [ prod, dev ]
-            ```
-            lib
-            |
-            |_ firebase_options
-                |
-                |_dev_firebase_options.dart
-                |_prod_firebase_options.dart
-            
-            ```
-    
-* [Step4] Create Application.dart
-    * maintain flavor env setup with Application template
+For more information, visit [Firebase CLI documentation](https://firebase.google.com/docs/cli).
+
+### FlutterFire CLI
+
+Install the FlutterFire CLI to configure Firebase in your Flutter project:
+
+```bash
+dart pub global activate flutterfire_cli
+```
+
+For more information, visit [FlutterFire documentation](https://firebase.flutter.dev/docs/cli/).
+
+## Setup Guide
+
+![Setup Guide](images/sidebar.png)
+
+### Step 1: Configure Flavors
 
 
-# SideBar
-![](./images/sidebar.png)
+1. Add the Flutter Flavorizr dependency:
+   - Package: [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr)
+   - This tool helps set up different app flavors (e.g., development, production)
+
+2. If the flavor creation fails, you can rerun the Flavorizr setup
+
+### Step 2: Create Firebase Projects
+
+1. Create separate Firebase projects for each flavor (e.g., development, production)
+2. Skip this step if you already have Firebase projects set up
+
+### Step 3: Configure Firebase
+
+1. Pull Firebase configurations for each flavor
+2. Automatic setup for Android and iOS
+3. No manual downloading of `google-services.json` or `GoogleService-Info.plist` required
+4. Creates Firebase options in the lib/firebase_options directory:
+
+```
+lib/
+└── firebase_options/
+    ├── dev_firebase_options.dart
+    └── prod_firebase_options.dart
+```
+
+### Step 4: Application Setup (Option)
+
+Create an Application.dart file to manage flavor environment configurations using the provided template.
+
+## Features
+
+- Easy flavor management for Flutter applications
+- Automated Firebase configuration for different environments
+- Streamlined setup process for both Android and iOS platforms
+- Built-in templates for quick configuration
+
+## Support
+
+For more information and updates, please check the documentation or raise an issue in the repository.

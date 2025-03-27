@@ -12,7 +12,7 @@ const fireBaseUninstallScripts: TreeScriptModel[] = [
     {
         scriptsType: ScriptsType.terminal,
         label: 'firebase install',
-        script: 'npm install -g firebase-tools',
+        script: 'brew install firebase-cli',
 
     }
 ]
@@ -31,7 +31,7 @@ const fireBaseInstallScripts: TreeScriptModel[] = [
 
     {
         scriptsType: ScriptsType.terminal,
-        label: 'Projects',
+        label: 'Project list',
         script: 'firebase projects:list',
     },
     {
@@ -41,7 +41,7 @@ const fireBaseInstallScripts: TreeScriptModel[] = [
     },
     {
         scriptsType: ScriptsType.terminal,
-        label: 'Start emulators',
+        label: 'Start firebase emulators',
         script: 'firebase emulators:start',
     }
 

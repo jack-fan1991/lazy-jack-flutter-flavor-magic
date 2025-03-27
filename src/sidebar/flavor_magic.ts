@@ -18,31 +18,31 @@ import * as changeCase from "change-case";
 const projectSetupScripts: TreeScriptModel[] = [
     {
         scriptsType: ScriptsType.customer,
-        label: 'Step 1. Setup flavor',
+        label: 'Step 1： Setup flavor',
         script: 'Setup flavor',
         description: 'Use flavorizr to setup flavor',
     },
     {
         scriptsType: ScriptsType.terminal,
-        label: 'Step 2. Run Flavorizr',
+        label: 'Step 2： Run Flavorizr',
         script: 'flutter pub run flutter_flavorizr',
         description: 'flutter pub run flutter_flavorizr',
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Step 3. Create firebase by flavor',
+        label: 'Step 3： Create firebase project by flavor',
         script: 'Create firebase by flavor',
         description: 'Select flavor to create firebase project',
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Step 4. Pull firebase option',
+        label: 'Step 4： Set up Firebase in your project',
         script: 'Setup firebase to project',
-        description: 'Pull firebase project option and deploy to flavor',
+        description: 'Select the flavor and Firebase project to pull the Firebase configuration options and deploy them to your flavor.',
     },
     {
         scriptsType: ScriptsType.customer,
-        label: 'Step 5. Create Application.dart',
+        label: 'Step 5： Create Application.dart',
         script: 'Create Application dart file',
         description: 'Create Application.dart template',
 
